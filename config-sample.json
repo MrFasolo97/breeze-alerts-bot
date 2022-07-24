@@ -1,7 +1,6 @@
 {
   "apis": [
-    "https://avalon.oneloved.tube",
-    "https://dtube.fso.ovh"
+    "https://breeze.fso.ovh"
   ],
   "db": "db.json",
   "watcher": {
@@ -11,10 +10,8 @@
   "apiwatcher": {
     "triggers": [3600, 1800, 600, 300],
     "nodes": [
-      "https://avalon.d.tube",
-      "https://avalon.oneloved.tube",
-      "https://avalon.tibfox.com",
-      "https://dtube.fso.ovh"
+      "https://breeze.fso.ovh",
+      "https://api.breezechain.org"
     ]
   },
   "intervals": {

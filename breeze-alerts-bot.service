@@ -1,0 +1,13 @@
+[Unit]
+Description=Breeze alerts bot daemon
+After=network.target
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/breeze/bots/telegram/breeze-alerts-bot/
+ExecStart=/home/breeze/bots/telegram/breeze-alerts-bot/breeze-alerts-bot
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

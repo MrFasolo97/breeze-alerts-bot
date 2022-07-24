@@ -24,7 +24,7 @@ const watcher = async () => {
     await update_db_leaders();
 
     // Alert leaders that unregistered
-    old.filter(o => (db.leaders.find(l => l.name === o.name) === undefined)).map(async leader => await telegram(`Leader${candidate} \`${leader.name}\` unregistered`));
+    old.filter(o => (db.leaders.find(l => l.name === o.name) === undefined)).map(async leader => await telegram(`Witness${candidate} \`${leader.name}\` unregistered`));
 
     // Actual missers
     const missers = Object.keys(db.missers);
@@ -39,7 +39,7 @@ const watcher = async () => {
 
       // Leader not found in old leaders db?
       if (oldLeader === undefined) {
-        await telegram(`Leader${candidate} \`${leader.name}\` registered`);
+        await telegram(`Witness${candidate} \`${leader.name}\` registered`);
         return;
       }
 
@@ -59,7 +59,7 @@ const watcher = async () => {
           // blocks yet
           if (candidate || leader.produced > oldLeader.produced) {
             const action =  !candidate ? 'started producing again' : 'is out of schedule';
-            await telegram(`Leader${candidate} \`${leader.name}\` ${action}, after missing *${total}* block(s), total blocks missed now is *${leader.missed}*`);
+            await telegram(`Witness${candidate} \`${leader.name}\` ${action}, after missing *${total}* block(s), total blocks missed now is *${leader.missed}*`);
             // Remove misser from db
             delete db.missers[leader.name];
             savedb();
@@ -83,7 +83,7 @@ const watcher = async () => {
 
         // Send message?
         if (message) {
-          await telegram(`Leader${candidate} \`${leader.name}\` continues missing, now with *${total}* block(s) missed`);
+          await telegram(`Witness${candidate} \`${leader.name}\` continues missing, now with *${total}* block(s) missed`);
           // Update last message missed in db
           misser.last = leader.missed;
           savedb();
@@ -102,13 +102,13 @@ const watcher = async () => {
           };
           savedb();
 
-          await telegram(`Leader${candidate} \`${leader.name}\` missed *${misses}* block(s)`);
+          await telegram(`Witness${candidate} \`${leader.name}\` missed *${misses}* block(s)`);
         }
       }
     });
 
   } catch (e) {
-    console.error('API node', config.apis[currentAPI], 'failed to retrieve leader data, reason:', e);
+    console.error('API node', config.apis[currentAPI], 'failed to retrieve witness data, reason:', e);
     // Retry the watcher because this might happen due to communication errors with the node...
     console.log('Retrying the watcher in a bit...');
     scheduleRetry(watcher);
@@ -187,17 +187,17 @@ const scheduleRetry = (action) => {
 }
 
 const update_db_leaders = async () => {
-  return fetch(`${config.apis[currentAPI]}/rank/leaders`)
+  return fetch(`${config.apis[currentAPI]}/rank/witnesses`)
     .then(res => res.json())
     .then(leaders => {
       if (!leaders || !Array.isArray(leaders)) {
-        console.log('Failed updating leaders data:', leaders);
+        console.log('Failed updating witnesses data:', leaders);
         return;
       }
       db.leaders = leaders;
     })
     .catch (err => {
-      console.error('Error updating leaders data');
+      console.error('Error updating witnesses data');
       console.error(err);
     });
 }
