@@ -1,8 +1,9 @@
-const fs = require('fs');
-const fetch = require('node-fetch');
-const formatDistance = require('date-fns/formatDistance');
+import fs from 'node:fs';
+import fetch from 'node-fetch';
+import formatDistance from 'date-fns/formatDistance/index.js';
+import { Client, GatewayIntentBits } from 'discord.js';
 
-const config = require('./config.json');
+const config = await JSON.parse(fs.readFileSync('./config.json'));
 
 
 var currentAPI = 0;
@@ -24,7 +25,10 @@ const watcher = async () => {
     await update_db_leaders();
 
     // Alert leaders that unregistered
-    old.filter(o => (db.leaders.find(l => l.name === o.name) === undefined)).map(async leader => await telegram(`Leader${candidate} \`${leader.name}\` unregistered`));
+    old.filter(o => (db.leaders.find(l => l.name === o.name) === undefined)).map(async leader => {
+      await telegram(`Leader${candidate} \`${leader.name}\` unregistered`)
+      await discord(`Leader${candidate} \`${leader.name}\` unregistered`)
+    });
 
     // Actual missers
     const missers = Object.keys(db.missers);
@@ -32,7 +36,7 @@ const watcher = async () => {
     // Compare new leaders from db with old
     db.leaders.map(async (leader, index) => {
       // Check if this leader is producing or just a candidate
-      const candidate = index < 13 ? '' : ' candidate';
+      const candidate = index < 15 ? '' : ' candidate';
 
       // Find the old leader
       const oldLeader = old.find(l => l.name === leader.name);
@@ -40,6 +44,7 @@ const watcher = async () => {
       // Leader not found in old leaders db?
       if (oldLeader === undefined) {
         await telegram(`Leader${candidate} \`${leader.name}\` registered`);
+        await discord(`Leader${candidate} \`${leader.name}\` registered`);
         return;
       }
 
@@ -60,6 +65,7 @@ const watcher = async () => {
           if (candidate || leader.produced > oldLeader.produced) {
             const action =  !candidate ? 'started producing again' : 'is out of schedule';
             await telegram(`Leader${candidate} \`${leader.name}\` ${action}, after missing *${total}* block(s), total blocks missed now is *${leader.missed}*`);
+            await discord(`Leader${candidate} \`${leader.name}\` ${action}, after missing *${total}* block(s), total blocks missed now is *${leader.missed}*`);
             // Remove misser from db
             delete db.missers[leader.name];
             savedb();
@@ -84,6 +90,7 @@ const watcher = async () => {
         // Send message?
         if (message) {
           await telegram(`Leader${candidate} \`${leader.name}\` continues missing, now with *${total}* block(s) missed`);
+          await discord(`Leader${candidate} \`${leader.name}\` continues missing, now with *${total}* block(s) missed`);
           // Update last message missed in db
           misser.last = leader.missed;
           savedb();
@@ -103,6 +110,7 @@ const watcher = async () => {
           savedb();
 
           await telegram(`Leader${candidate} \`${leader.name}\` missed *${misses}* block(s)`);
+          await discord(`Leader${candidate} \`${leader.name}\` missed *${misses}* block(s)`);
         }
       }
     });
@@ -134,7 +142,10 @@ const APIwatcher = async () => {
   const now = Date.now();
 
   // Alert api nodes back up
-  old.filter(api => !nodes.includes(api.node)).map(async api => await telegram(`API node ${api.node} is back up, it was down for ${formatDistance(new Date(api.timestamp), new Date())}`));
+  old.filter(api => !nodes.includes(api.node)).map(async api => {
+    await telegram(`API node ${api.node} is back up, it was down for ${formatDistance(new Date(api.timestamp), new Date())}`)
+    await discord(`API node ${api.node} is back up, it was down for ${formatDistance(new Date(api.timestamp), new Date())}`)
+  });
 
   // Process api nodes down
   const down = nodes.map(node => {
@@ -162,9 +173,11 @@ const APIwatcher = async () => {
       // Send message?
       if (message) {
         await telegram(`API node ${api.node} has been down for ${formatDistance(new Date(api.timestamp), new Date())}`);
+        await discord(`API node ${api.node} has been down for ${formatDistance(new Date(api.timestamp), new Date())}`);
       }
     } else {
       await telegram(`API node ${api.node} went down`);
+      await discord(`API node ${api.node} went down`);
     }
   });
 
@@ -265,10 +278,40 @@ const savedb = () => {
 }
 
 
+const discordClient = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+discordClient.on('ready', () => {
+  console.log(`Logged in as ${discordClient.user.tag}!`);
+});
+
+
+
+discordClient.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+
+  if (interaction.commandName === 'ping') {
+    await interaction.reply('Pong!');
+  }
+});
+
+async function discord(msg) {
+  if (config.discord.enable && config.discord.token && config.discord.token !== '' && config.discord.token !== null) {
+    // console.log(await discordClient.channels.fetch(config.discord.channels[0]))
+    for (const channel in config.discord.channels) {
+      let channelObj = await discordClient.channels.fetch(config.discord.channels[channel]);
+      await channelObj.send(msg);
+    }
+  } else {
+    console.log("Discord MSG: "+msg);
+  }
+}
+
 // boot up the bot
 
 // telegram('Avalon alerts bot starting...');
+await discordClient.login(config.discord.token);
 
+// await discord('Avalon alerts bot starting...');
 // load the database
 loaddb();
 

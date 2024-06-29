@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Avalon node leaders alerts bot for Telegram",
   "main": "avalon-alerts-bot.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -23,6 +24,7 @@
   "homepage": "https://github.com/prcolaco/avalon-alerts-bot#readme",
   "dependencies": {
     "date-fns": "^2.16.1",
+    "discord.js": "^14.15.3",
     "node-fetch": "^2.3.0"
   }
 }
