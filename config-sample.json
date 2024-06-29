@@ -1,6 +1,6 @@
 {
   "apis": [
-    "https://avalon.oneloved.tube",
+    "https://avalon.luminade.fun",
     "https://dtube.fso.ovh"
   ],
   "db": "db.json",
@@ -12,8 +12,8 @@
     "triggers": [3600, 1800, 600, 300],
     "nodes": [
       "https://avalon.d.tube",
-      "https://avalon.oneloved.tube",
-      "https://avalon.tibfox.com",
+      "https://avalon.luminade.fun",
+      "https://api.avalonblocks.com",
       "https://dtube.fso.ovh"
     ]
   },
@@ -21,6 +21,11 @@
     "watcher": 300000,
     "apiwatcher": 60000,
     "retry": 1000
+  },
+  "discord": {
+    "enable": true,
+    "token": "",
+    "channels": [""]
   },
   "telegram": {
     "apiurl": "https://api.telegram.org/bot",
