@@ -292,22 +292,16 @@ discordClient.on('ready', () => {
   console.log(`Logged in as ${discordClient.user.tag}!`);
 });
 
-
-
-discordClient.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  if (interaction.commandName === 'ping') {
-    await interaction.reply('Pong!');
-  }
-});
-
 async function discord(msg) {
   if (config.discord.enable && config.discord.token && config.discord.token !== '' && config.discord.token !== null) {
     // console.log(await discordClient.channels.fetch(config.discord.channels[0]))
     for (const channel in config.discord.channels) {
-      let channelObj = await discordClient.channels.fetch(config.discord.channels[channel]);
-      await channelObj.send(msg);
+      try {
+        let channelObj = await discordClient.channels.fetch(config.discord.channels[channel]);
+        await channelObj.send(msg);
+      } catch(err) {
+        console.log(await err);
+      }
     }
   } else {
     console.log("Discord MSG: "+msg);
@@ -316,10 +310,14 @@ async function discord(msg) {
 
 async function ntfy(msg) {
   if (config.ntfy.enable && config.ntfy.address && config.ntfy.address !== '')
+    try {
     await fetch(config.ntfy.address, {
       method: 'POST', // PUT works too
       body: msg
     })
+  } catch (err) {
+    console.log(await err);
+  }
 }
 
 // boot up the bot
