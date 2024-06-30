@@ -27,6 +27,10 @@
     "token": "",
     "channels": [""]
   },
+  "ntfy": {
+    "enable": true,
+    "address": "https://ntfy.fso.ovh/dtube"
+  },
   "telegram": {
     "apiurl": "https://api.telegram.org/bot",
     "apikey": "",

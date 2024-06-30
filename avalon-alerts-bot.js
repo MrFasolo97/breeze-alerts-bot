@@ -28,6 +28,7 @@ const watcher = async () => {
     old.filter(o => (db.leaders.find(l => l.name === o.name) === undefined)).map(async leader => {
       await telegram(`Leader${candidate} \`${leader.name}\` unregistered`)
       await discord(`Leader${candidate} \`${leader.name}\` unregistered`)
+      await ntfy(`Leader${candidate} \`${leader.name}\` unregistered`)
     });
 
     // Actual missers
@@ -45,6 +46,7 @@ const watcher = async () => {
       if (oldLeader === undefined) {
         await telegram(`Leader${candidate} \`${leader.name}\` registered`);
         await discord(`Leader${candidate} \`${leader.name}\` registered`);
+        await ntfy(`Leader${candidate} \`${leader.name}\` registered`);
         return;
       }
 
@@ -66,6 +68,7 @@ const watcher = async () => {
             const action =  !candidate ? 'started producing again' : 'is out of schedule';
             await telegram(`Leader${candidate} \`${leader.name}\` ${action}, after missing *${total}* block(s), total blocks missed now is *${leader.missed}*`);
             await discord(`Leader${candidate} \`${leader.name}\` ${action}, after missing *${total}* block(s), total blocks missed now is *${leader.missed}*`);
+            await ntfy(`Leader${candidate} \`${leader.name}\` ${action}, after missing *${total}* block(s), total blocks missed now is *${leader.missed}*`);
             // Remove misser from db
             delete db.missers[leader.name];
             savedb();
@@ -91,6 +94,7 @@ const watcher = async () => {
         if (message) {
           await telegram(`Leader${candidate} \`${leader.name}\` continues missing, now with *${total}* block(s) missed`);
           await discord(`Leader${candidate} \`${leader.name}\` continues missing, now with *${total}* block(s) missed`);
+          await ntfy(`Leader${candidate} \`${leader.name}\` continues missing, now with *${total}* block(s) missed`);
           // Update last message missed in db
           misser.last = leader.missed;
           savedb();
@@ -111,6 +115,7 @@ const watcher = async () => {
 
           await telegram(`Leader${candidate} \`${leader.name}\` missed *${misses}* block(s)`);
           await discord(`Leader${candidate} \`${leader.name}\` missed *${misses}* block(s)`);
+          await ntfy(`Leader${candidate} \`${leader.name}\` missed *${misses}* block(s)`);
         }
       }
     });
@@ -145,6 +150,7 @@ const APIwatcher = async () => {
   old.filter(api => !nodes.includes(api.node)).map(async api => {
     await telegram(`API node ${api.node} is back up, it was down for ${formatDistance(new Date(api.timestamp), new Date())}`)
     await discord(`API node ${api.node} is back up, it was down for ${formatDistance(new Date(api.timestamp), new Date())}`)
+    await ntfy(`API node ${api.node} is back up, it was down for ${formatDistance(new Date(api.timestamp), new Date())}`)
   });
 
   // Process api nodes down
@@ -174,10 +180,12 @@ const APIwatcher = async () => {
       if (message) {
         await telegram(`API node ${api.node} has been down for ${formatDistance(new Date(api.timestamp), new Date())}`);
         await discord(`API node ${api.node} has been down for ${formatDistance(new Date(api.timestamp), new Date())}`);
+        await ntfy(`API node ${api.node} has been down for ${formatDistance(new Date(api.timestamp), new Date())}`);
       }
     } else {
       await telegram(`API node ${api.node} went down`);
       await discord(`API node ${api.node} went down`);
+      await ntfy(`API node ${api.node} went down`);
     }
   });
 
@@ -304,6 +312,14 @@ async function discord(msg) {
   } else {
     console.log("Discord MSG: "+msg);
   }
+}
+
+async function ntfy(msg) {
+  if (config.ntfy.enable && config.ntfy.address && config.ntfy.address !== '')
+    await fetch(config.ntfy.address, {
+      method: 'POST', // PUT works too
+      body: msg
+    })
 }
 
 // boot up the bot
