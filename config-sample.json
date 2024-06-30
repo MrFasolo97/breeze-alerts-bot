@@ -17,6 +17,7 @@
       "https://dtube.fso.ovh"
     ]
   },
+  "remind": true,
   "intervals": {
     "watcher": 300000,
     "apiwatcher": 60000,
