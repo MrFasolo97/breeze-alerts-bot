@@ -187,7 +187,7 @@ const APIwatcher = async () => {
         await discord(`API node ${api.node} has been down for ${formatDistance(new Date(api.timestamp), new Date())}`);
         await ntfy(`API node ${api.node} has been down for ${formatDistance(new Date(api.timestamp), new Date())}`);
       }
-    } else if((secs % config.apiwatcher.triggers[0]) > 300) {
+    } else if(now - api.timestamp > 5*60*1000) {
       await telegram(`API node ${api.node} went down`);
       await discord(`@here API node ${api.node} went down`);
       await ntfy(`API node ${api.node} went down`);
