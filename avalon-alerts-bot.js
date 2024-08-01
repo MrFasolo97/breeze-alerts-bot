@@ -16,6 +16,11 @@ var db = {
 };
 
 
+const app = new express();
+let isChainHalted = false;
+let lastBlockCount = 0;
+let sameBlockCounter = 0;
+
 const watcher = async () => {
   try {
     // Save old leaders to compare
@@ -227,7 +232,7 @@ const get_api_nodes_down = async () => {
   const down = await Promise.all(config.apiwatcher.nodes.map(async api => {
     try {
       const res = await fetch(`${api}/count`, { timeout: 5000 });
-
+      if (await JSON.parse(res.body).count)
       return (!res.ok);
     } catch (e) {
       console.error('API watcher node', api, 'fetch failed, reason:', e);
