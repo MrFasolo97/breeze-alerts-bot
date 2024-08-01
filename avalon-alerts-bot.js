@@ -106,7 +106,7 @@ const watcher = async () => {
         }
       } else {
         // Calc the misses
-        const misses = leader.missed - (oldLeader.missed || 0);
+        const misses = leader.missed - (oldLeader.missed || 0)-20;
 
         // Are there any misses?
         if (misses > 0) {
@@ -118,9 +118,9 @@ const watcher = async () => {
           };
           savedb();
 
-          await telegram(`Leader${candidate} \`@${leader.name}\` missed *${misses}* block(s)`);
-          await discord(`@here Leader${candidate} \`@${leader.name}\` missed *${misses}* block(s)`);
-          await ntfy(`Leader${candidate} \`@${leader.name}\` missed *${misses}* block(s)`);
+          await telegram(`Leader${candidate} \`@${leader.name}\` missed *${misses+20}* block(s)`);
+          await discord(`@here Leader${candidate} \`@${leader.name}\` missed *${misses+20}* block(s)`);
+          await ntfy(`Leader${candidate} \`@${leader.name}\` missed *${misses+20}* block(s)`);
         }
       }
     });
@@ -179,7 +179,7 @@ const APIwatcher = async () => {
       const secs = Math.round((now - api.timestamp) / 1000);
 
       // Find a trigger that fits if any
-      const message = (config.apiwatcher.triggers.find(t => Math.abs(secs - t) < 30) !== undefined) || ((secs % config.apiwatcher.triggers[0]) < 30);
+      const message = (config.apiwatcher.triggers.find(t => Math.abs(secs - t) < 30) !== undefined) || ((secs % config.apiwatcher.triggers[0]) < 300);
 
       // Send message?
       if (message && config.remind) {
