@@ -1,17 +1,9 @@
-<<<<<<< Updated upstream:avalon-alerts-bot.js
 import fs from 'node:fs';
 import fetch from 'node-fetch';
 import formatDistance from 'date-fns/formatDistance/index.js';
 import { Client, GatewayIntentBits } from 'discord.js';
 
 const config = await JSON.parse(fs.readFileSync('./config.json'));
-=======
-const fs = require('fs');
-const fetch = require('node-fetch');
-const formatDistance = require('date-fns/formatDistance');
-const express = require('express');
-const config = require('./config.json');
->>>>>>> Stashed changes:breeze-alerts-bot.js
 
 
 var currentAPI = 0;
@@ -23,11 +15,8 @@ var db = {
   leaders: []
 };
 
-
+let isChainHalted = true;
 const app = new express();
-let isChainHalted = false;
-let lastBlockCount = 0;
-let sameBlockCounter = 0;
 
 const watcher = async () => {
   try {
@@ -237,16 +226,38 @@ const update_db_leaders = async () => {
 }
 
 const get_api_nodes_down = async () => {
+  let allHalted = true;
   const down = await Promise.all(config.apiwatcher.nodes.map(async api => {
     try {
       const res = await fetch(`${api}/count`, { timeout: 5000 });
-      if (await JSON.parse(res.body).count)
+      let count = (await json.parse(res.body)).count;
+      if (res.ok) {
+        let blockData = await fetch(`${api}/block/${count}`, { timeout: 10000 })
+        if(blockData.timestamp>(Date.now()-60000)) {
+          if (isChainHalted) {
+            await telegram(`Chain running again!`);
+            await discord(`@here Chain running again!`);
+            await ntfy(`Chain running again!`);
+          }
+          isChainHalted = false;
+          allHalted = false;
+        }
+      }
       return (!res.ok);
     } catch (e) {
       console.error('API watcher node', api, 'fetch failed, reason:', e);
       return true;
     }
   }));
+  if (allHalted)
+    sameBlockCounter = sameBlockCounter+1;
+
+  if (sameBlockCounter >= 5 && !isChainHalted) {
+    await telegram(`Chain halted? All API nodes have old blocks.`);
+    await discord(`@here Chain halted? All API nodes have old blocks.`);
+    await ntfy(`Chain halted? All API nodes have old blocks.`);
+    isChainHalted = true;
+  }
 
 	return config.apiwatcher.nodes.filter((_v, index) => down[index]);
 }
