@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import fetch from 'node-fetch';
 import formatDistance from 'date-fns/formatDistance/index.js';
 import { Client, GatewayIntentBits } from 'discord.js';
-import express from 'express';
 
 const config = await JSON.parse(fs.readFileSync('./config.json'));
 
@@ -13,14 +12,15 @@ var retries = 0;
 var db = {
   down: [],
   missers: {},
-  leaders: []
+  leaders: [],
+  isChainHalted: true,
+  chainHaltedMessageSent: false,
+  chainRecoveredMessageSent: false,
+  sameBlockCounter: 0,
+  lastBlockTs: Date.now(),
 };
 
-let isChainHalted = true;
-let sameBlockCounter = 0;
-
-const app = new express();
-
+db.sameBlockCounter = db.sameBlockCounter || 0;
 const watcher = async () => {
   try {
     // Save old leaders to compare
@@ -42,7 +42,7 @@ const watcher = async () => {
     // Compare new leaders from db with old
     db.leaders.map(async (leader, index) => {
       // Check if this leader is producing or just a candidate
-      const candidate = index < 15 ? '' : ' candidate';
+      const candidate = index < 5 ? '' : ' candidate';
 
       // Find the old leader
       const oldLeader = old.find(l => l.name === leader.name);
@@ -229,39 +229,57 @@ const update_db_leaders = async () => {
 }
 
 const get_api_nodes_down = async () => {
-  let allHalted = true;
+  db.isChainHalted = true;
   const down = await Promise.all(config.apiwatcher.nodes.map(async api => {
     try {
-      const res = await fetch(`${api}/count`, { timeout: 5000 });
-      let count = (await JSON.parse(res.body)).count;
-      if (res.ok) {
-        let blockData = await fetch(`${api}/block/${count}`, { timeout: 10000 })
-        if(blockData.timestamp>(Date.now()-60000)) {
-          if (isChainHalted) {
-            await telegram(`Chain running again!`);
-            await discord(`@here Chain running again!`);
-            await ntfy(`Chain running again!`);
-          }
-          isChainHalted = false;
-          allHalted = false;
+      await fetch(`${api}/count`, { timeout: 5000 }).then(async (res) => {
+        let count = await res.json();
+        //console.log(await count.count);
+        if (res.ok) {
+          await fetch(`${api}/block/${count['count']}`, { timeout: 10000 }).then(async (rawBlockData) => {
+            rawBlockData = await rawBlockData.json();
+            //console.log("block", rawBlockData);
+            let blockData = rawBlockData;
+            //console.log("Comparing times")
+            if(blockData['timestamp']>(Date.now()-(60000*5))) {
+              if (db.isChainHalted && (!db.chainRecoveredMessageSent || db.chainHaltedMessageSent)) {
+                await telegram(`Chain running again! It was halted for about ${formatDistance(new Date(db.lastBlockTs), new Date())}`);
+                await discord(`@here Chain running again! It was halted for about ${formatDistance(new Date(db.lastBlockTs), new Date())}`);
+                await ntfy(`Chain running again! It was halted for about ${formatDistance(new Date(db.lastBlockTs), new Date())}`);
+                db.isChainHalted = false;
+                db.chainHaltedMessageSent = false;
+                db.chainRecoveredMessageSent = true;
+                db.sameBlockCounter = 0;
+              } else {
+                db.isChainHalted = false;
+                //console.log("Chain apparently running")
+              }
+            }
+            db.lastBlockTs = rawBlockData['timestamp'];
+          })
         }
-      }
-      return (!res.ok);
+        savedb();
+        return (!res.ok);
+      })
     } catch (e) {
       console.error('API watcher node', api, 'fetch failed, reason:', e);
       return true;
     }
   }));
-  if (allHalted)
-    sameBlockCounter = sameBlockCounter+1;
-
-  if (sameBlockCounter >= 5 && !isChainHalted) {
-    await telegram(`Chain halted? All API nodes have old blocks.`);
-    await discord(`@here Chain halted? All API nodes have old blocks.`);
-    await ntfy(`Chain halted? All API nodes have old blocks.`);
-    isChainHalted = true;
+  if (db.isChainHalted) {
+    db.sameBlockCounter = db.sameBlockCounter+1;
+    console.log("Same block for check #"+db.sameBlockCounter+"...")
+  } else {
+    db.sameBlockCounter = 0;
   }
-
+  if (db.isChainHalted && (!db.chainHaltedMessageSent || db.chainRecoveredMessageSent)) {
+    await telegram(`Chain halted? All API nodes have old blocks. Last block ts: `+db.lastBlockTs + " about "+formatDistance(new Date(db.lastBlockTs), new Date())+" ago.");
+    await discord(`@here Chain halted? All API nodes have old blocks. Last block ts: `+db.lastBlockTs + " about "+formatDistance(new Date(db.lastBlockTs), new Date())+" ago.");
+    await ntfy(`Chain halted? All API nodes have old blocks. Last block ts: `+db.lastBlockTs + " about "+formatDistance(new Date(db.lastBlockTs), new Date())+" ago.");
+    db.chainHaltedMessageSent = true;
+    db.chainRecoveredMessageSent = false;
+  }
+  savedb();
 	return config.apiwatcher.nodes.filter((_v, index) => down[index]);
 }
 
@@ -364,3 +382,4 @@ setInterval(APIwatcher, config.intervals.apiwatcher);
 
 // do 1st watcher round now
 setImmediate(watcher);
+setImmediate(APIwatcher);
