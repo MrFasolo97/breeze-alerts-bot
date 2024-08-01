@@ -179,7 +179,7 @@ const APIwatcher = async () => {
       const secs = Math.round((now - api.timestamp) / 1000);
 
       // Find a trigger that fits if any
-      const message = (config.apiwatcher.triggers.find(t => Math.abs(secs - t) < 30) !== undefined) || ((secs % config.apiwatcher.triggers[0]) < 300);
+      const message = (config.apiwatcher.triggers.find(t => Math.abs(secs - t) < 30) !== undefined) || ((secs % config.apiwatcher.triggers[0]) < 30);
 
       // Send message?
       if (message && config.remind) {
@@ -187,7 +187,7 @@ const APIwatcher = async () => {
         await discord(`API node ${api.node} has been down for ${formatDistance(new Date(api.timestamp), new Date())}`);
         await ntfy(`API node ${api.node} has been down for ${formatDistance(new Date(api.timestamp), new Date())}`);
       }
-    } else {
+    } else if((secs % config.apiwatcher.triggers[0]) > 300) {
       await telegram(`API node ${api.node} went down`);
       await discord(`@here API node ${api.node} went down`);
       await ntfy(`API node ${api.node} went down`);
