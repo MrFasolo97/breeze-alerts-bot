@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import fetch from 'node-fetch';
 import formatDistance from 'date-fns/formatDistance/index.js';
 import { Client, GatewayIntentBits } from 'discord.js';
+import express from 'express';
 
 const config = await JSON.parse(fs.readFileSync('./config.json'));
 
@@ -16,6 +17,8 @@ var db = {
 };
 
 let isChainHalted = true;
+let sameBlockCounter = 0;
+
 const app = new express();
 
 const watcher = async () => {
@@ -230,7 +233,7 @@ const get_api_nodes_down = async () => {
   const down = await Promise.all(config.apiwatcher.nodes.map(async api => {
     try {
       const res = await fetch(`${api}/count`, { timeout: 5000 });
-      let count = (await json.parse(res.body)).count;
+      let count = (await JSON.parse(res.body)).count;
       if (res.ok) {
         let blockData = await fetch(`${api}/block/${count}`, { timeout: 10000 })
         if(blockData.timestamp>(Date.now()-60000)) {
