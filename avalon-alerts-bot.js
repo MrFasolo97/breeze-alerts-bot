@@ -1,9 +1,17 @@
+<<<<<<< Updated upstream:avalon-alerts-bot.js
 import fs from 'node:fs';
 import fetch from 'node-fetch';
 import formatDistance from 'date-fns/formatDistance/index.js';
 import { Client, GatewayIntentBits } from 'discord.js';
 
 const config = await JSON.parse(fs.readFileSync('./config.json'));
+=======
+const fs = require('fs');
+const fetch = require('node-fetch');
+const formatDistance = require('date-fns/formatDistance');
+const express = require('express');
+const config = require('./config.json');
+>>>>>>> Stashed changes:breeze-alerts-bot.js
 
 
 var currentAPI = 0;
