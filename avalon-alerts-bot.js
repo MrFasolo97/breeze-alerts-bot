@@ -162,9 +162,10 @@ const APIwatcher = async () => {
   const down = nodes.map(node => {
     // Find if this node was already down
     const oldDown = old.find(api => api.node === node);
-
     const timestamp = oldDown ? oldDown.timestamp : now;
-    return { node, timestamp };
+    if (now - timestamp > 5*60*1000) {
+      return { node, timestamp };
+    }
   });
 
   // Save api nodes down to db
