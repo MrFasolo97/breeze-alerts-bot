@@ -45,7 +45,7 @@ const watcher = async () => {
       const candidate = index < 5 ? '' : ' candidate';
 
       // Find the old leader
-      const oldLeader = old.find(l => l.name === leader.name);
+      const oldLeader = await old.find(l => l.name === leader.name);
 
       // Leader not found in old leaders db?
       if (oldLeader === undefined) {
@@ -76,7 +76,7 @@ const watcher = async () => {
             await ntfy(`Leader${candidate} \`${leader.name}\` ${action}, after missing *${total}* block(s), total blocks missed now is *${leader.missed}*`);
             // Remove misser from db
             delete db.missers[leader.name];
-            savedb();
+            await savedb();
           }
           return;
         }
@@ -102,7 +102,7 @@ const watcher = async () => {
           await ntfy(`Leader${candidate} \`${leader.name}\` continues missing, now with *${total}* block(s) missed`);
           // Update last message missed in db
           misser.last = leader.missed;
-          savedb();
+          await savedb();
         }
       } else {
         // Calc the misses
@@ -116,7 +116,7 @@ const watcher = async () => {
             start: oldLeader.missed + 1,
             last: leader.missed
           };
-          savedb();
+          await savedb();
 
           await telegram(`Leader${candidate} \`@${leader.name}\` missed *${misses+20}* block(s)`);
           await discord(`@here Leader${candidate} \`@${leader.name}\` missed *${misses+20}* block(s)`);
@@ -132,8 +132,7 @@ const watcher = async () => {
     scheduleRetry(watcher);
     return;
   }
-
-  savedb();
+  await savedb();
 }
 
 const APIwatcher = async () => {
@@ -170,7 +169,7 @@ const APIwatcher = async () => {
 
   // Save api nodes down to db
   db.down = down;
-  savedb();
+  await savedb();
 
   // Send alerts for down nodes
   down.map(async api => {
@@ -242,7 +241,7 @@ const get_api_nodes_down = async () => {
             //console.log("block", rawBlockData);
             let blockData = rawBlockData;
             //console.log("Comparing times")
-            if(blockData['timestamp']>(Date.now()-(60000*5))) {
+            if (blockData['timestamp']>(Date.now()-(60000*5))) {
               if (db.isChainHalted && (!db.chainRecoveredMessageSent || db.chainHaltedMessageSent)) {
                 await telegram(`Chain running again! It was halted for about ${formatDistance(new Date(db.lastBlockTs), new Date())}`);
                 await discord(`@here Chain running again! It was halted for about ${formatDistance(new Date(db.lastBlockTs), new Date())}`);
@@ -259,7 +258,7 @@ const get_api_nodes_down = async () => {
             db.lastBlockTs = rawBlockData['timestamp'];
           })
         }
-        savedb();
+        await savedb();
         return (!res.ok);
       })
     } catch (e) {
@@ -280,7 +279,7 @@ const get_api_nodes_down = async () => {
     db.chainHaltedMessageSent = true;
     db.chainRecoveredMessageSent = false;
   }
-  savedb();
+  await savedb();
 	return config.apiwatcher.nodes.filter((_v, index) => down[index]);
 }
 
@@ -322,7 +321,7 @@ const loaddb = () => {
   }
 }
 
-const savedb = () => {
+const savedb = async () => {
   try {
     fs.writeFileSync(config.db, JSON.stringify(db, null, 2));
   }
