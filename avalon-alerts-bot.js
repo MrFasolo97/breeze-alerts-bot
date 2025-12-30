@@ -151,6 +151,7 @@ const APIwatcher = async () => {
   const now = Date.now();
 
   // Alert api nodes back up
+  let api = 
   old.filter(api => !nodes.includes(api.node)).map(async api => {
     await telegram(`API node ${api.node} is back up, it was down for ${formatDistance(new Date(api.timestamp), new Date())}`)
     await discord(`@here API node ${api.node} is back up, it was down for ${formatDistance(new Date(api.timestamp), new Date())}`)
@@ -290,7 +291,7 @@ const telegram = async (msg) => {
       text: msg,
       parse_mode: 'markdown'
     };
-    return fetch(`${config.telegram.apiurl}${config.telegram.apikey}/sendMessage`, {
+    return await fetch(`${config.telegram.apiurl}${config.telegram.apikey}/sendMessage`, {
       method: 'post',
       body: JSON.stringify(body),
       headers: {
@@ -310,6 +311,12 @@ const telegram = async (msg) => {
   } else {
     console.log('TM Message:', msg);
   }
+}
+
+export const globalMessage = async(msg) => {
+  await telegram(msg);
+  await discord(msg);
+  await ntfy(msg);
 }
 
 const loaddb = () => {
