@@ -139,7 +139,7 @@ const APIwatcher = async () => {
   // Save old leaders to compare
   const old = db.down || [];
 
-  const nodes = await get_api_nodes_down();
+  const nodes = await get_api_nodes_down() || [];
 
   // If lost contact with all nodes, maybe it's a network issue?
   if (nodes.length === config.apiwatcher.nodes.length) {
@@ -281,7 +281,7 @@ const get_api_nodes_down = async () => {
     db.chainRecoveredMessageSent = false;
   }
   await savedb();
-	return config.apiwatcher.nodes.filter((_v, index) => down[index]);
+  return config.apiwatcher.nodes.filter((_v, index) => down[index]);
 }
 
 const telegram = async (msg) => {
